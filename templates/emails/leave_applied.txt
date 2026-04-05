@@ -1,0 +1,15 @@
+New Leave Request - {{ employee_name }}
+
+A new leave request has been submitted:
+
+Employee: {{ employee_name }} ({{ employee_email }})
+Leave Type: {{ leave_type }}
+Duration: {{ start_date }} to {{ end_date }} ({{ days }} day{{ days|pluralize }})
+Reason: {{ reason }}
+
+{% if leave_url %}
+View this leave request: {{ leave_url }}
+{% endif %}
+
+---
+This is an automated notification from HRM SaaS.

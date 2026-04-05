@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Request Approved</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+        .details { background-color: white; padding: 15px; border-radius: 5px; margin-top: 15px; }
+        .detail-row { padding: 8px 0; border-bottom: 1px solid #eee; }
+        .detail-row:last-child { border-bottom: none; }
+        .label { font-weight: bold; color: #555; }
+        .button { display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; margin-top: 15px; }
+        .footer { background-color: #f0f0f0; padding: 15px; text-align: center; font-size: 12px; color: #777; border-radius: 0 0 5px 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Leave Request Approved</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ employee_name }},</p>
+
+            <p>Good news! Your leave request has been approved.</p>
+
+            <div class="details">
+                <div class="detail-row">
+                    <span class="label">Leave Type:</span> {{ leave_type }}
+                </div>
+                <div class="detail-row">
+                    <span class="label">Duration:</span> {{ start_date }} to {{ end_date }} ({{ days }} day{{ days|pluralize }})
+                </div>
+                <div class="detail-row">
+                    <span class="label">Approved by:</span> {{ approver_name }}
+                </div>
+                {% if approval_comment %}
+                <div class="detail-row">
+                    <span class="label">Comment:</span> {{ approval_comment }}
+                </div>
+                {% endif %}
+            </div>
+
+            {% if leave_url %}
+            <div style="text-align: center;">
+                <a href="{{ leave_url }}" class="button">View Your Leave</a>
+            </div>
+            {% endif %}
+        </div>
+        <div class="footer">
+            This is an automated notification from HRM SaaS.
+        </div>
+    </div>
+</body>
+</html>

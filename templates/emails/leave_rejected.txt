@@ -1,0 +1,20 @@
+Your Leave Request has been Rejected - {{ leave_type }}
+
+Dear {{ employee_name }},
+
+We regret to inform you that your leave request has been rejected.
+
+Leave Details:
+Type: {{ leave_type }}
+Duration: {{ start_date }} to {{ end_date }} ({{ days }} day{{ days|pluralize }})
+Rejected by: {{ rejecter_name }}
+Reason for rejection: {{ rejection_reason }}
+
+If you have any questions, please contact HR.
+
+{% if leave_url %}
+View your leave: {{ leave_url }}
+{% endif %}
+
+---
+This is an automated notification from HRM SaaS.

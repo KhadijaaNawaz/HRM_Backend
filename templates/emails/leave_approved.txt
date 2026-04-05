@@ -1,0 +1,20 @@
+Your Leave Request has been Approved - {{ leave_type }}
+
+Dear {{ employee_name }},
+
+Good news! Your leave request has been approved.
+
+Leave Details:
+Type: {{ leave_type }}
+Duration: {{ start_date }} to {{ end_date }} ({{ days }} day{{ days|pluralize }})
+Approved by: {{ approver_name }}
+{% if approval_comment %}
+Comment: {{ approval_comment }}
+{% endif %}
+
+{% if leave_url %}
+View your leave: {{ leave_url }}
+{% endif %}
+
+---
+This is an automated notification from HRM SaaS.

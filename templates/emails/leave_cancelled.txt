@@ -1,0 +1,14 @@
+Leave Cancelled - {{ employee_name }}
+
+A leave request has been cancelled by the employee.
+
+Employee: {{ employee_name }} ({{ employee_email }})
+Leave Type: {{ leave_type }}
+Duration: {{ start_date }} to {{ end_date }} ({{ days }} day{{ days|pluralize }})
+
+{% if leave_url %}
+View this leave: {{ leave_url }}
+{% endif %}
+
+---
+This is an automated notification from HRM SaaS.
