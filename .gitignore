@@ -79,9 +79,26 @@ coverage.xml
 .pytest_cache/
 .tox/
 
-# Migrations
-*/migrations/0*.py
-!migrations_nonatomic/auth/0001_initial.py
+# Migrations - DO NOT ignore migrations (they are essential for deployment)
+# Uncomment only if you know what you're doing
+# */migrations/0*.py
+# !migrations_nonatomic/auth/0001_initial.py
+
+# Claude AI files
+.claude/
+.claude*
+CLAUDE.md
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Test files (keep test folder separate)
+test/
+test_*.py
+*_test.py
+tests.py
 
 # Docker
 .dockerignore

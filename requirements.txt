@@ -12,7 +12,10 @@ psycopg2-binary==2.9.10
 # Environment & Configuration
 python-dotenv==1.0.1
 
-# Background Tasks
+# Production Server
+gunicorn==23.0.0
+
+# Background Tasks (optional - not needed for basic deployment)
 celery==5.4.0
 redis==5.2.1
 

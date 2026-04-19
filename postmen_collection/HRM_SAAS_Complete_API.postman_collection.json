@@ -1,0 +1,2284 @@
+{
+	"info": {
+		"_postman_id": "hrm-saas-complete-api",
+		"name": "HRM SAAS - Complete API Collection",
+		"description": "Complete API collection for HRM SAAS Multi-Tenant HR Management System. Includes all endpoints for authentication, user management, attendance, roles, invitations, organization settings, and audit logs.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. BASE CONFIGURATION",
+			"item": [
+				{
+					"name": "Set Base URL and Tenant",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"",
+									"// Configuration",
+									"pm.environment.set('base_url', 'http://localhost:8000');",
+									"pm.environment.set('api_version', 'api/v1');",
+									"",
+									"// Tenant Configuration - Choose ONE method:",
+									"",
+									"// Method 1: Using x-tenant-id header (recommended for testing)",
+									"pm.environment.set('tenant_id', 'demo');",
+									"",
+									"// Method 2: Using subdomain",
+									"// pm.environment.set('base_url', 'http://demo.localhost:8000');",
+									"",
+									"// Method 3: Using query parameter",
+									"// pm.environment.set('use_query_param', 'true');",
+									"",
+									"console.log('Base URL:', pm.environment.get('base_url'));",
+									"console.log('Tenant ID:', pm.environment.get('tenant_id'));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}"]
+						},
+						"description": "Run this first to set up your environment variables. Edit the tenant_id in the Pre-request Script."
+					},
+					"response": []
+				}
+			],
+			"description": "Run this folder first to configure your environment"
+		},
+		{
+			"name": "2. AUTHENTICATION",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Save tokens for subsequent requests",
+									"var jsonData = pm.response.json();",
+									"",
+									"if (jsonData.access) {",
+									"    pm.environment.set('access_token', jsonData.access);",
+									"}",
+									"if (jsonData.refresh) {",
+									"    pm.environment.set('refresh_token', jsonData.refresh);",
+									"}",
+									"if (jsonData.user) {",
+									"    pm.environment.set('user_id', jsonData.user.id);",
+									"    pm.environment.set('user_email', jsonData.user.email);",
+									"}",
+									"",
+									"pm.test('Login successful', function() {",
+									"    pm.expect(pm.response.code).to.eql(200);",
+									"    pm.expect(jsonData).to.have.property('access');",
+									"    pm.expect(jsonData).to.have.property('refresh');",
+									"    pm.expect(jsonData).to.have.property('user');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@hrmsaas.com\",\n    \"password\": \"Admin123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/auth/login/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "auth", "login", ""]
+						},
+						"description": "Authenticate user and receive JWT tokens"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User (Me)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Get current user successful', function() {",
+									"    pm.expect(pm.response.code).to.eql(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/auth/me/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "auth", "me", ""]
+						},
+						"description": "Get currently authenticated user details"
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Update access token",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.access) {",
+									"    pm.environment.set('access_token', jsonData.access);",
+									"}",
+									"pm.test('Token refreshed successfully', function() {",
+									"    pm.expect(pm.response.code).to.eql(200);",
+									"    pm.expect(jsonData).to.have.property('access');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/auth/refresh/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "auth", "refresh", ""]
+						},
+						"description": "Refresh access token using refresh token"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/auth/logout/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "auth", "logout", ""]
+						},
+						"description": "Logout user and invalidate refresh token"
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"user@hrmsaas.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/auth/password/forgot/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "auth", "password", "forgot", ""]
+						},
+						"description": "Request password reset email"
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"reset-token-from-email\",\n    \"new_password\": \"NewPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/auth/password/reset/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "auth", "password", "reset", ""]
+						},
+						"description": "Reset password using token from email"
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"old_password\": \"Admin123!\",\n    \"new_password\": \"NewPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/auth/password/change/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "auth", "password", "change", ""]
+						},
+						"description": "Change password for authenticated user"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for login, logout, and password management"
+		},
+		{
+			"name": "3. USER MANAGEMENT",
+			"item": [
+				{
+					"name": "List Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('List users successful', function() {",
+									"    pm.expect(pm.response.code).to.eql(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/users/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "users", ""]
+						},
+						"description": "Get paginated list of users (Admin/HR only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Users",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/users/?search=john",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "users", ""],
+							"query": [
+								{
+									"key": "search",
+									"value": "john"
+								}
+							]
+						},
+						"description": "Search users by name, email, or employee ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Filter Users by Role",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/users/?role=employee",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "users", ""],
+							"query": [
+								{
+									"key": "role",
+									"value": "employee"
+								}
+							]
+						},
+						"description": "Filter users by role"
+					},
+					"response": []
+				},
+				{
+					"name": "Create User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Save user ID for later use",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.id) {",
+									"    pm.environment.set('created_user_id', jsonData.id);",
+									"}",
+									"pm.test('User created successfully', function() {",
+									"    pm.expect(pm.response.code).to.eql(201);",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"newuser@hrmsaas.com\",\n    \"password\": \"User123!\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"phone\": \"+1234567890\",\n    \"department\": \"Engineering\",\n    \"employee_id\": \"EMP001\",\n    \"date_of_birth\": \"1990-01-01\",\n    \"joining_date\": \"2024-01-01\",\n    \"address\": \"123 Main St\",\n    \"roles\": [\"employee\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/users/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "users", ""]
+						},
+						"description": "Create a new user (Admin/HR only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/users/{{user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "users", "{{user_id}}", ""]
+						},
+						"description": "Get details of a specific user"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"first_name\": \"Jane\",\n    \"department\": \"Sales\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/users/{{user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "users", "{{user_id}}", ""]
+						},
+						"description": "Update user details (partial update)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User (Soft Delete)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/users/{{created_user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "users", "{{created_user_id}}", ""]
+						},
+						"description": "Soft delete a user (deactivates account)"
+					},
+					"response": []
+				},
+				{
+					"name": "Activate User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/users/{{created_user_id}}/activate/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "users", "{{created_user_id}}", "activate", ""]
+						},
+						"description": "Activate a deactivated user"
+					},
+					"response": []
+				}
+			],
+			"description": "User management endpoints for creating, updating, and managing users"
+		},
+		{
+			"name": "4. ROLE MANAGEMENT",
+			"item": [
+				{
+					"name": "List Roles",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/roles/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "roles", ""]
+						},
+						"description": "Get list of all roles"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Custom Role",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.id) {",
+									"    pm.environment.set('created_role_id', jsonData.id);",
+									"}",
+									"pm.test('Role created successfully', function() {",
+									"    pm.expect(pm.response.code).to.eql(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Project Manager\",\n    \"description\": \"Can manage projects and team members\",\n    \"permissions\": [\n        \"view_user\",\n        \"view_attendance\",\n        \"manage_attendance\",\n        \"view_leaves\"\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/roles/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "roles", ""]
+						},
+						"description": "Create a custom role (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Role Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/roles/{{created_role_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "roles", "{{created_role_id}}", ""]
+						},
+						"description": "Get details of a specific role"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Role",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"description\": \"Updated description\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/roles/{{created_role_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "roles", "{{created_role_id}}", ""]
+						},
+						"description": "Update role details"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Role",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/roles/{{created_role_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "roles", "{{created_role_id}}", ""]
+						},
+						"description": "Delete a custom role (system roles cannot be deleted)"
+					},
+					"response": []
+				},
+				{
+					"name": "Assign Role to User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{created_user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/roles/hr/assign/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "roles", "hr", "assign", ""]
+						},
+						"description": "Assign HR role to a user"
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke Role from User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{created_user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/roles/hr/revoke/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "roles", "hr", "revoke", ""]
+						},
+						"description": "Revoke HR role from a user"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Roles",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/roles/user/{{user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "roles", "user", "{{user_id}}", ""]
+						},
+						"description": "Get all roles assigned to a user"
+					},
+					"response": []
+				}
+			],
+			"description": "Role management endpoints for creating and managing custom roles"
+		},
+		{
+			"name": "5. INVITATIONS",
+			"item": [
+				{
+					"name": "List Invitations",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/invite/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "invite", ""]
+						},
+						"description": "Get list of all invitations"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Invitation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.id) {",
+									"    pm.environment.set('invitation_id', jsonData.id);",
+									"    pm.environment.set('invitation_token', jsonData.token);",
+									"}",
+									"pm.test('Invitation created successfully', function() {",
+									"    pm.expect(pm.response.code).to.eql(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"invitee@hrmsaas.com\",\n    \"role\": \"employee\",\n    \"department\": \"Engineering\",\n    \"message\": \"Join our team!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/invite/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "invite", ""]
+						},
+						"description": "Create and send a new user invitation"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Invitation Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/invite/{{invitation_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "invite", "{{invitation_id}}", ""]
+						},
+						"description": "Get details of a specific invitation"
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Invitation",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/invite/{{invitation_id}}/cancel/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "invite", "{{invitation_id}}", "cancel", ""]
+						},
+						"description": "Cancel a pending invitation"
+					},
+					"response": []
+				},
+				{
+					"name": "Resend Invitation",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/invite/{{invitation_id}}/resend/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "invite", "{{invitation_id}}", "resend", ""]
+						},
+						"description": "Resend an invitation email"
+					},
+					"response": []
+				},
+				{
+					"name": "Accept Invitation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"{{invitation_token}}\",\n    \"password\": \"NewUser123!\",\n    \"first_name\": \"Invited\",\n    \"last_name\": \"User\",\n    \"phone\": \"+1234567890\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/invite/accept/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "invite", "accept", ""]
+						},
+						"description": "Accept an invitation and create account (public endpoint)"
+					},
+					"response": []
+				}
+			],
+			"description": "Invitation endpoints for sending and managing user invitations"
+		},
+		{
+			"name": "6. ORGANIZATION",
+			"item": [
+				{
+					"name": "Get Organization Overview",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/organization/overview/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "organization", "overview", ""]
+						},
+						"description": "Get organization statistics and overview"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Organization Settings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/organization/settings/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "organization", "settings", ""]
+						},
+						"description": "Get organization settings"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Organization Settings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"timezone\": \"America/New_York\",\n    \"workdays\": [\"mon\", \"tue\", \"wed\", \"thu\", \"fri\"],\n    \"required_days_per_month\": 22,\n    \"allow_public_signup\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/organization/settings/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "organization", "settings", ""]
+						},
+						"description": "Update organization settings (Admin only)"
+					},
+					"response": []
+				}
+			],
+			"description": "Organization management endpoints"
+		},
+		{
+			"name": "7. ATTENDANCE",
+			"item": [
+				{
+					"name": "List Attendance Records",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/attendance/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "attendance", ""]
+						},
+						"description": "Get attendance records (Admin/HR see all, employees see own)"
+					},
+					"response": []
+				},
+				{
+					"name": "Filter Attendance by Date Range",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/attendance/?start_date=2024-01-01&end_date=2024-01-31",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "attendance", ""],
+							"query": [
+								{
+									"key": "start_date",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "end_date",
+									"value": "2024-01-31"
+								}
+							]
+						},
+						"description": "Filter attendance records by date range"
+					},
+					"response": []
+				},
+				{
+					"name": "Check In",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.id) {",
+									"    pm.environment.set('attendance_id', jsonData.id);",
+									"}",
+									"pm.test('Check-in successful', function() {",
+									"    pm.expect(pm.response.code).to.eql(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060,\n    \"notes\": \"Working from office\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/attendance/checkin/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "attendance", "checkin", ""]
+						},
+						"description": "Check in to record attendance"
+					},
+					"response": []
+				},
+				{
+					"name": "Check Out",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"attendance_id\": \"{{attendance_id}}\",\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060,\n    \"notes\": \"Leaving office\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/attendance/checkout/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "attendance", "checkout", ""]
+						},
+						"description": "Check out from attendance"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Attendance",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/attendance/my-attendance/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "attendance", "my-attendance", ""]
+						},
+						"description": "Get current user's attendance records"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Monthly Stats",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/attendance/my-monthly-stats/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "attendance", "my-monthly-stats", ""]
+						},
+						"description": "Get current user's monthly attendance statistics"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Attendance Settings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/attendance/settings/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "attendance", "settings", ""]
+						},
+						"description": "Get attendance settings for organization"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Attendance Settings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"allow_remote_checkin\": true,\n    \"require_location\": true,\n    \"checkin_radius_meters\": 100\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/attendance/settings/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "attendance", "settings", ""]
+						},
+						"description": "Update attendance settings (Admin only)"
+					},
+					"response": []
+				}
+			],
+			"description": "Attendance tracking endpoints"
+		},
+		{
+			"name": "8. LEAVES",
+			"item": [
+				{
+					"name": "List Leave Requests",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/leaves/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "leaves", ""]
+						},
+						"description": "Get list of leave requests"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Leave Request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.id) {",
+									"    pm.environment.set('leave_request_id', jsonData.id);",
+									"}",
+									"pm.test('Leave request created', function() {",
+									"    pm.expect(pm.response.code).to.eql(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"leave_type\": \"annual\",\n    \"start_date\": \"2024-02-01\",\n    \"end_date\": \"2024-02-05\",\n    \"reason\": \"Family vacation\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/leaves/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "leaves", ""]
+						},
+						"description": "Create a new leave request"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Leave Request Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/leaves/{{leave_request_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "leaves", "{{leave_request_id}}", ""]
+						},
+						"description": "Get details of a specific leave request"
+					},
+					"response": []
+				},
+				{
+					"name": "Approve Leave Request",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/leaves/{{leave_request_id}}/approve/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "leaves", "{{leave_request_id}}", "approve", ""]
+						},
+						"description": "Approve a leave request (Admin/HR only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Leave Request",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"reason\": \"Insufficient leave balance\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/leaves/{{leave_request_id}}/reject/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "leaves", "{{leave_request_id}}", "reject", ""]
+						},
+						"description": "Reject a leave request (Admin/HR only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Leave Request",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/leaves/{{leave_request_id}}/cancel/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "leaves", "{{leave_request_id}}", "cancel", ""]
+						},
+						"description": "Cancel a pending leave request"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Leave Balance",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/leaves/balance/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "leaves", "balance", ""]
+						},
+						"description": "Get current user's leave balance"
+					},
+					"response": []
+				}
+			],
+			"description": "Leave management endpoints"
+		},
+		{
+			"name": "9. NOTIFICATIONS",
+			"item": [
+				{
+					"name": "List Notifications",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/notifications/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "notifications", ""]
+						},
+						"description": "Get list of notifications for current user"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark Notification as Read",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/notifications/{{notification_id}}/read/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "notifications", "{{notification_id}}", "read", ""]
+						},
+						"description": "Mark a notification as read"
+					},
+					"response": []
+				},
+				{
+					"name": "Mark All Notifications as Read",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/notifications/read-all/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "notifications", "read-all", ""]
+						},
+						"description": "Mark all notifications as read"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Notification",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/notifications/{{notification_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "notifications", "{{notification_id}}", ""]
+						},
+						"description": "Delete a notification"
+					},
+					"response": []
+				}
+			],
+			"description": "Notification management endpoints"
+		},
+		{
+			"name": "10. AUDIT LOGS",
+			"item": [
+				{
+					"name": "List Audit Logs",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/audit/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "audit", ""]
+						},
+						"description": "Get audit logs (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Filter Audit Logs by Action",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/audit/?action=user_login",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "audit", ""],
+							"query": [
+								{
+									"key": "action",
+									"value": "user_login"
+								}
+							]
+						},
+						"description": "Filter audit logs by action type"
+					},
+					"response": []
+				},
+				{
+					"name": "Filter Audit Logs by User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/audit/?user_id={{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "audit", ""],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "{{user_id}}"
+								}
+							]
+						},
+						"description": "Filter audit logs by user"
+					},
+					"response": []
+				},
+				{
+					"name": "Filter Audit Logs by Date Range",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/audit/?start_date=2024-01-01&end_date=2024-01-31",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "audit", ""],
+							"query": [
+								{
+									"key": "start_date",
+									"value": "2024-01-01"
+								},
+								{
+									"key": "end_date",
+									"value": "2024-01-31"
+								}
+							]
+						},
+						"description": "Filter audit logs by date range"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Audit Log Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-tenant-id",
+								"value": "{{tenant_id}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/audit/{{audit_log_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "audit", "{{audit_log_id}}", ""]
+						},
+						"description": "Get details of a specific audit log entry"
+					},
+					"response": []
+				}
+			],
+			"description": "Audit log endpoints (Admin only)"
+		},
+		{
+			"name": "11. PLATFORM ADMIN",
+			"item": [
+				{
+					"name": "Create Tenant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.organization && jsonData.organization.id) {",
+									"    pm.environment.set('tenant_org_id', jsonData.organization.id);",
+									"}",
+									"pm.test('Tenant created successfully', function() {",
+									"    pm.expect(pm.response.code).to.eql(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"organization_name\": \"Acme Corporation\",\n    \"subdomain\": \"acme\",\n    \"email\": \"admin@acme.com\",\n    \"password\": \"TenantAdmin123!\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"phone\": \"+1234567890\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/admin/create-tenant/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "admin", "create-tenant", ""]
+						},
+						"description": "Create a new tenant organization (Superuser only)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Tenants",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/admin/tenants/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "admin", "tenants", ""]
+						},
+						"description": "List all tenants (Superuser only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tenant Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/admin/tenants/{{tenant_org_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "admin", "tenants", "{{tenant_org_id}}", ""]
+						},
+						"description": "Get details of a specific tenant"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Tenant",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"organization_name\": \"Acme Corp Updated\",\n    \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/admin/tenants/{{tenant_org_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "admin", "tenants", "{{tenant_org_id}}", ""]
+						},
+						"description": "Update tenant details"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Tenant",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/admin/tenants/{{tenant_org_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "admin", "tenants", "{{tenant_org_id}}", ""]
+						},
+						"description": "Delete a tenant (WARNING: This deletes all tenant data)"
+					},
+					"response": []
+				},
+				{
+					"name": "Activate Tenant",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/admin/tenants/{{tenant_org_id}}/activate/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "admin", "tenants", "{{tenant_org_id}}", "activate", ""]
+						},
+						"description": "Activate a suspended tenant"
+					},
+					"response": []
+				},
+				{
+					"name": "Suspend Tenant",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/admin/tenants/{{tenant_org_id}}/suspend/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "admin", "tenants", "{{tenant_org_id}}", "suspend", ""]
+						},
+						"description": "Suspend an active tenant"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tenant Users",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/{{api_version}}/admin/tenants/{{tenant_org_id}}/users/",
+							"host": ["{{base_url}}"],
+							"path": ["{{api_version}}", "admin", "tenants", "{{tenant_org_id}}", "users", ""]
+						},
+						"description": "Get all users for a specific tenant"
+					},
+					"response": []
+				}
+			],
+			"description": "Platform admin endpoints (Superuser only)"
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "api_version",
+			"value": "api/v1",
+			"type": "string"
+		},
+		{
+			"key": "tenant_id",
+			"value": "demo",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
